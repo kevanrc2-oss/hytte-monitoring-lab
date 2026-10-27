@@ -12,6 +12,9 @@ const guidanceChoice = document.getElementById("guidance-choice");
 const incidentGuidance = document.getElementById("incident-guidance");
 const guidanceYes = document.getElementById("guidance-yes");
 const guidanceNo = document.getElementById("guidance-no");
+const doorOnButton = document.getElementById("door-monitoring-on");
+const doorOffButton = document.getElementById("door-monitoring-off");
+const doorMonitoringStatus = document.getElementById("door-monitoring-status");
 
 let port = null;
 let reader = null;
@@ -64,6 +67,23 @@ function updateIncident(message) {
         match[3] !== "Active";
 }
 
+function updateDoorMonitoring(message) {
+    if (
+        message !== "DOOR_MONITORING ON" &&
+        message !== "DOOR_MONITORING OFF"
+    ) {
+        return;
+    }
+
+    const enabled = message === "DOOR_MONITORING ON";
+
+    doorMonitoringStatus.textContent =
+        enabled ? "Door monitoring: ON" : "Door monitoring: OFF";
+
+    doorOnButton.setAttribute("aria-pressed", String(enabled));
+    doorOffButton.setAttribute("aria-pressed", String(!enabled));
+}
+
 async function readMessages(openPort) {
     const decoder = new TextDecoder();
     let buffer = "";
@@ -90,6 +110,7 @@ async function readMessages(openPort) {
                 if (message !== "") {
                     serialMessage.textContent = `Received: ${message}`;
                     updateIncident(message);
+                    updateDoorMonitoring(message);
                 }
 
                 newlineIndex = buffer.indexOf("\n");
@@ -105,7 +126,11 @@ async function readMessages(openPort) {
     } finally {
         activeReader.releaseLock();
         reader = null;
+
         notResolvedButton.disabled = true;
+        doorOnButton.disabled = true;
+        doorOffButton.disabled = true;
+
         guidanceChoice.hidden = true;
         incidentGuidance.hidden = true;
     }
@@ -138,9 +163,13 @@ async function selectPort() {
 
     try {
         if (port !== null) {
+            homeButton.disabled = true;
+            awayButton.disabled = true;
+            notResolvedButton.disabled = true;
+            doorOnButton.disabled = true;
+            doorOffButton.disabled = true;
+
             if (reader !== null) {
-                homeButton.disabled = true;
-                awayButton.disabled = true;
                 await reader.cancel();
             }
 
@@ -170,6 +199,12 @@ async function selectPort() {
             readTask = readMessages(port);
             homeButton.disabled = false;
             awayButton.disabled = false;
+            doorOnButton.disabled = false;
+            doorOffButton.disabled = false;
+
+            doorMonitoringStatus.textContent = "Door monitoring: not confirmed";
+            doorOnButton.setAttribute("aria-pressed", "false");
+            doorOffButton.setAttribute("aria-pressed", "false");
         }
     } catch (error) {
         if (error.name === "NotFoundError") {
@@ -235,4 +270,18 @@ guidanceNo.addEventListener("click", () => {
 
     incidentResponse.textContent =
         "Guidance declined. The incident remains Active.";
+});
+
+doorOnButton.addEventListener("click", () => {
+    sendCommand("DOOR ON").catch(error => {
+        serialMessage.textContent = "Could not enable Door monitoring.";
+        console.error(error);
+    });
+});
+
+doorOffButton.addEventListener("click", () => {
+    sendCommand("DOOR OFF").catch(error => {
+        serialMessage.textContent = "Could not disable Door monitoring.";
+        console.error(error);
+    });
 });
