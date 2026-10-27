@@ -2,6 +2,7 @@
 #include <string>
 #include "MonitoringSystem.h"
 #include <cstdio>
+#include "Sound.h"
 
 MicroBit uBit;
 
@@ -73,7 +74,10 @@ void onButtonA(MicroBitEvent)
         return;
     }
 
-    if (selectedScenario == DemoScenario::Door)
+    const DemoScenario scenario = selectedScenario;
+    bool newIncident = false;
+
+    if (scenario == DemoScenario::Door)
     {
         const DoorResult result = monitoring.detectDoorActivity();
 
@@ -86,22 +90,40 @@ void onButtonA(MicroBitEvent)
             return;
         }
 
+        newIncident = result == DoorResult::WarningCreated;
         uBit.display.printChar('W');
     }
     else
     {
-        monitoring.detectSmokeActivity();
+        const SmokeResult result = monitoring.detectSmokeActivity();
+
+        newIncident = result == SmokeResult::CriticalCreated;
         uBit.display.printChar('C');
     }
 
-    reportIncident(selectedScenario, "Active");
+    reportIncident(scenario, "Active");
+
+    if (newIncident)
+    {
+        if (scenario == DemoScenario::Door)
+        {
+            playWarningSound(uBit);
+        }
+        else
+        {
+            playCriticalSound(uBit);
+        }
+    }
 }
 
 void onButtonB(MicroBitEvent)
 {
-    const bool resolved = selectedScenario == DemoScenario::Smoke
-        ? monitoring.resolveSmokeIncident()
-        : monitoring.resolveDoorIncident();
+    const DemoScenario scenario = selectedScenario;
+
+    const bool resolved =
+        scenario == DemoScenario::Smoke
+            ? monitoring.resolveSmokeIncident()
+            : monitoring.resolveDoorIncident();
 
     if (!resolved)
     {
@@ -113,7 +135,9 @@ void onButtonB(MicroBitEvent)
     }
 
     reportMode();
-    reportIncident(selectedScenario, "Closed");
+    reportIncident(scenario, "Closed");
+
+    playResolvedSound(uBit);
 }
 
 void reportDoorMonitoring()
