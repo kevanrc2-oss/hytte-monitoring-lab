@@ -20,13 +20,36 @@ jobs:
     steps:
       - name: Download our repository
         uses: actions/checkout@v7
-
+        
       - name: Install build tools
+        timeout-minutes: 8
         run: |
-          sudo apt-get update
+          sudo apt-get update \
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30
+
           sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build gcc-arm-none-eabi \
-            libstdc++-arm-none-eabi-newlib
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
+            cmake ninja-build
+
+          curl --fail --location --retry 2 \
+            --connect-timeout 20 --max-time 180 \
+            "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz" \
+            --output "$RUNNER_TEMP/arm-toolchain.tar.xz"
+
+          mkdir -p "$RUNNER_TEMP/arm-toolchain"
+
+          tar --extract --xz --no-same-owner \
+            --file "$RUNNER_TEMP/arm-toolchain.tar.xz" \
+            --directory "$RUNNER_TEMP/arm-toolchain" \
+            --strip-components=1
+
+          echo "$RUNNER_TEMP/arm-toolchain/bin" >> "$GITHUB_PATH"
+
+          "$RUNNER_TEMP/arm-toolchain/bin/arm-none-eabi-g++" --version
 
       - name: Download CODAL build project
         run: |
