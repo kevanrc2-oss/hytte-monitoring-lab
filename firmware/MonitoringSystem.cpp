@@ -73,3 +73,52 @@ bool MonitoringSystem::isDoorMonitoringEnabled() const
 {
     return doorMonitoringEnabled_;
 }
+
+SmokeResult MonitoringSystem::detectSmokeActivity()
+{
+    if (mode_ == MonitoringMode::Unselected)
+    {
+        return SmokeResult::ModeNotSelected;
+    }
+
+    if (smokeIncidentActive_)
+    {
+        return SmokeResult::CriticalAlreadyActive;
+    }
+
+    smokeIncidentId_ = nextIncidentId_++;
+    smokeIncidentActive_ = true;
+    smokeNotResolved_ = false;
+
+    return SmokeResult::CriticalCreated;
+}
+
+bool MonitoringSystem::resolveSmokeIncident()
+{
+    if (!smokeIncidentActive_)
+    {
+        return false;
+    }
+
+    smokeIncidentActive_ = false;
+    smokeNotResolved_ = false;
+
+    return true;
+}
+
+unsigned int MonitoringSystem::getSmokeIncidentId() const
+{
+    return smokeIncidentId_;
+}
+
+bool MonitoringSystem::markSmokeNotResolved(unsigned int incidentId)
+{
+    if (!smokeIncidentActive_ || incidentId != smokeIncidentId_)
+    {
+        return false;
+    }
+
+    smokeNotResolved_ = true;
+
+    return true;
+}

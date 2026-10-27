@@ -15,6 +15,10 @@ const guidanceNo = document.getElementById("guidance-no");
 const doorOnButton = document.getElementById("door-monitoring-on");
 const doorOffButton = document.getElementById("door-monitoring-off");
 const doorMonitoringStatus = document.getElementById("door-monitoring-status");
+const doorScenarioButton = document.getElementById("scenario-door");
+const smokeScenarioButton = document.getElementById("scenario-smoke");
+const scenarioStatus = document.getElementById("scenario-status");
+const incidentSensor = document.getElementById("incident-sensor");
 
 let port = null;
 let reader = null;
@@ -33,6 +37,7 @@ function updateIncident(message) {
         ) {
             incidentResponse.textContent =
                 `Not Resolved confirmed. Incident ${unresolved[1]} remains Active.`;
+
             guidanceChoice.hidden = false;
             incidentGuidance.hidden = true;
         }
@@ -41,7 +46,7 @@ function updateIncident(message) {
     }
 
     const match = message.match(
-        /^INCIDENT ([1-9]\d*) DOOR (Warning|Critical) (Active|Closed)$/
+        /^INCIDENT ([1-9]\d*) (DOOR|SMOKE) (Warning|Critical) (Active|Closed)$/
     );
 
     if (match === null) {
@@ -50,21 +55,22 @@ function updateIncident(message) {
 
     if (
         match[1] !== incidentId.textContent ||
-        match[3] === "Closed"
+        match[4] === "Closed"
     ) {
-       incidentResponse.textContent = "";
-       guidanceChoice.hidden = true;
-       incidentGuidance.hidden = true;
+        incidentResponse.textContent = "";
+        guidanceChoice.hidden = true;
+        incidentGuidance.hidden = true;
     }
 
     incidentId.textContent = match[1];
-    incidentSeverity.textContent = match[2];
-    incidentStatus.textContent = match[3];
+    incidentSensor.textContent = match[2];
+    incidentSeverity.textContent = match[3];
+    incidentStatus.textContent = match[4];
 
     notResolvedButton.disabled =
         port === null ||
         reader === null ||
-        match[3] !== "Active";
+        match[4] !== "Active";
 }
 
 function updateDoorMonitoring(message) {
@@ -82,6 +88,23 @@ function updateDoorMonitoring(message) {
 
     doorOnButton.setAttribute("aria-pressed", String(enabled));
     doorOffButton.setAttribute("aria-pressed", String(!enabled));
+}
+
+function updateScenario(message) {
+    const match = message.match(/^SCENARIO (DOOR|SMOKE)$/);
+
+    if (match === null) {
+        return;
+    }
+
+    const isSmoke = match[1] === "SMOKE";
+
+    scenarioStatus.textContent = isSmoke
+        ? "Selected scenario: Critical smoke"
+        : "Selected scenario: Door activity";
+
+    doorScenarioButton.setAttribute("aria-pressed", String(!isSmoke));
+    smokeScenarioButton.setAttribute("aria-pressed", String(isSmoke));
 }
 
 async function readMessages(openPort) {
@@ -111,6 +134,7 @@ async function readMessages(openPort) {
                     serialMessage.textContent = `Received: ${message}`;
                     updateIncident(message);
                     updateDoorMonitoring(message);
+                    updateScenario(message);
                 }
 
                 newlineIndex = buffer.indexOf("\n");
@@ -130,9 +154,14 @@ async function readMessages(openPort) {
         notResolvedButton.disabled = true;
         doorOnButton.disabled = true;
         doorOffButton.disabled = true;
+        doorScenarioButton.disabled = true;
+        smokeScenarioButton.disabled = true;
+        homeButton.disabled = true;
+        awayButton.disabled = true;
 
         guidanceChoice.hidden = true;
         incidentGuidance.hidden = true;
+        
     }
 }
 
@@ -169,6 +198,9 @@ async function selectPort() {
             doorOnButton.disabled = true;
             doorOffButton.disabled = true;
 
+            doorScenarioButton.disabled = true;
+            smokeScenarioButton.disabled = true;
+
             if (reader !== null) {
                 await reader.cancel();
             }
@@ -192,6 +224,7 @@ async function selectPort() {
             connectButton.textContent = "Disconnect";
             serialMessage.textContent = "Waiting for a message…";
             incidentId.textContent = "—";
+            incidentSensor.textContent = "—";
             incidentSeverity.textContent = "—";
             incidentStatus.textContent = "—";
             incidentResponse.textContent = "";
@@ -201,8 +234,15 @@ async function selectPort() {
             awayButton.disabled = false;
             doorOnButton.disabled = false;
             doorOffButton.disabled = false;
+           // Aktiver valg av scenario etter tilkobling.
+            doorScenarioButton.disabled = false;
+            smokeScenarioButton.disabled = false;
 
-            doorMonitoringStatus.textContent = "Door monitoring: not confirmed";
+            scenarioStatus.textContent = "Selected scenario: not confirmed";
+            doorScenarioButton.setAttribute("aria-pressed", "false");
+            smokeScenarioButton.setAttribute("aria-pressed", "false");
+
+            doorMonitoringStatus.textContent = "Door monitoring: not confirmed";  
             doorOnButton.setAttribute("aria-pressed", "false");
             doorOffButton.setAttribute("aria-pressed", "false");
         }
@@ -284,4 +324,19 @@ doorOffButton.addEventListener("click", () => {
         serialMessage.textContent = "Could not disable Door monitoring.";
         console.error(error);
     });
+});
+
+function selectScenario(scenario) {
+    sendCommand(`SELECT ${scenario}`).catch(error => {
+        serialMessage.textContent = "Could not select scenario.";
+        console.error(error);
+    });
+}
+
+doorScenarioButton.addEventListener("click", () => {
+    selectScenario("DOOR");
+});
+
+smokeScenarioButton.addEventListener("click", () => {
+    selectScenario("SMOKE");
 });

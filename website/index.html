@@ -138,6 +138,12 @@
                     </button>
                 </div>
 
+                <p id="scenario-status"
+                   class="dashboard-hint"
+                   role="status">
+                    Selected scenario: not confirmed
+                </p>
+
                 <p class="dashboard-hint">
                     These scenarios simulate sensor readings.
                     No physical door or smoke sensor is required.
@@ -145,13 +151,18 @@
             </div>
         </div>
         <div class="dashboard-panel incident-panel">
-            <p class="dashboard-label">03 / LATEST DOOR INCIDENT</p>
+            <p class="dashboard-label">03 / LATEST INCIDENT</p>
             <h3>Incident overview</h3>
 
             <dl class="incident-details">
                 <div>
                     <dt>Incident ID</dt>
                     <dd id="incident-id">—</dd>
+                </div>
+
+                <div>
+                    <dt>Sensor</dt>
+                    <dd id="incident-sensor">—</dd>
                 </div>
 
                 <div>
@@ -164,7 +175,8 @@
                     <dd id="incident-status" aria-live="polite">—</dd>
                 </div>
             </dl>
-                        <div class="dashboard-buttons">
+
+            <div class="dashboard-buttons">
                 <button type="button" id="incident-not-resolved" disabled>
                     Not Resolved
                 </button>
@@ -190,14 +202,14 @@
             <div id="incident-guidance" hidden>
                 <h4>Suggested next steps</h4>
 
-                <ol>
+                                <ol>
                     <li>
-                        Check whether someone is expected
-                        at the cabin in this simulated scenario.
+                        Review the simulated sensor event
+                        and its reported severity.
                     </li>
                     <li>
-                        Confirm whether the simulated door activity
-                        has been explained and handled.
+                        Confirm whether the simulated condition
+                        has been handled.
                     </li>
                     <li>
                         Decide whether the incident can be resolved.

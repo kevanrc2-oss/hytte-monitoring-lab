@@ -7,6 +7,14 @@ MicroBit uBit;
 
 MonitoringSystem monitoring;
 
+enum class DemoScenario
+{
+    Door,
+    Smoke
+};
+
+DemoScenario selectedScenario = DemoScenario::Door;
+
 void reportMode()
 {
     switch (monitoring.getMode())
@@ -28,15 +36,26 @@ void reportMode()
     }
 }
 
-void reportDoorIncident(const char* status)
+void reportIncident(DemoScenario scenario, const char* status)
 {
+    const bool isSmoke = scenario == DemoScenario::Smoke;
+
+    const char* sensor = isSmoke ? "SMOKE" : "DOOR";
+    const char* severity = isSmoke ? "Critical" : "Warning";
+
+    const unsigned int id = isSmoke
+        ? monitoring.getSmokeIncidentId()
+        : monitoring.getDoorIncidentId();
+
     char message[100];
 
     std::snprintf(
         message,
         sizeof(message),
-        "INCIDENT %u DOOR Warning %s\n",
-        monitoring.getDoorIncidentId(),
+        "INCIDENT %u %s %s %s\n",
+        id,
+        sensor,
+        severity,
         status
     );
 
@@ -45,9 +64,7 @@ void reportDoorIncident(const char* status)
 
 void onButtonA(MicroBitEvent)
 {
-    const DoorResult result = monitoring.detectDoorActivity();
-
-    if (result == DoorResult::ModeNotSelected)
+    if (monitoring.getMode() == MonitoringMode::Unselected)
     {
         uBit.serial.send(
             ManagedString("ERROR MODE_NOT_SELECTED\n"),
@@ -56,32 +73,47 @@ void onButtonA(MicroBitEvent)
         return;
     }
 
-    if (result == DoorResult::Ignored)
+    if (selectedScenario == DemoScenario::Door)
     {
-        uBit.serial.send(
-            ManagedString("DOOR IGNORED\n"),
-            SYNC_SLEEP
-        );
-        return;
-    }
+        const DoorResult result = monitoring.detectDoorActivity();
+
+        if (result == DoorResult::Ignored)
+        {
+            uBit.serial.send(
+                ManagedString("DOOR IGNORED\n"),
+                SYNC_SLEEP
+            );
+            return;
+        }
 
         uBit.display.printChar('W');
-        reportDoorIncident("Active");
+    }
+    else
+    {
+        monitoring.detectSmokeActivity();
+        uBit.display.printChar('C');
+    }
+
+    reportIncident(selectedScenario, "Active");
 }
 
 void onButtonB(MicroBitEvent)
 {
-    if (!monitoring.resolveDoorIncident())
+    const bool resolved = selectedScenario == DemoScenario::Smoke
+        ? monitoring.resolveSmokeIncident()
+        : monitoring.resolveDoorIncident();
+
+    if (!resolved)
     {
         uBit.serial.send(
-            ManagedString("ERROR NO_ACTIVE_DOOR_INCIDENT\n"),
+            ManagedString("ERROR NO_ACTIVE_INCIDENT\n"),
             SYNC_SLEEP
         );
         return;
     }
 
     reportMode();
-    reportDoorIncident("Closed");
+    reportIncident(selectedScenario, "Closed");
 }
 
 void reportDoorMonitoring()
@@ -89,6 +121,15 @@ void reportDoorMonitoring()
     const char* message = monitoring.isDoorMonitoringEnabled()
         ? "DOOR_MONITORING ON\n"
         : "DOOR_MONITORING OFF\n";
+
+    uBit.serial.send(ManagedString(message), SYNC_SLEEP);
+}
+
+void reportSelectedScenario()
+{
+    const char* message = selectedScenario == DemoScenario::Smoke
+        ? "SCENARIO SMOKE\n"
+        : "SCENARIO DOOR\n";
 
     uBit.serial.send(ManagedString(message), SYNC_SLEEP);
 }
@@ -123,6 +164,20 @@ void receiveCommands()
         {
             reportMode();
         }
+                else if (command == "SELECT DOOR")
+        {
+            selectedScenario = DemoScenario::Door;
+            reportSelectedScenario();
+        }
+        else if (command == "SELECT SMOKE")
+        {
+            selectedScenario = DemoScenario::Smoke;
+            reportSelectedScenario();
+        }
+        else if (command == "GET_SCENARIO")
+        {
+            reportSelectedScenario();
+        }
                 else if (command == "DOOR ON")
         {
             monitoring.setDoorMonitoringEnabled(true);
@@ -149,8 +204,23 @@ void receiveCommands()
                 &extra
             );
 
-            if (fields != 1 ||
-                !monitoring.markDoorNotResolved(incidentId))
+            bool accepted = false;
+            DemoScenario incidentScenario = DemoScenario::Door;
+
+            if (fields == 1)
+            {
+                if (monitoring.markDoorNotResolved(incidentId))
+                {
+                    accepted = true;
+                }
+                else if (monitoring.markSmokeNotResolved(incidentId))
+                {
+                    accepted = true;
+                    incidentScenario = DemoScenario::Smoke;
+                }
+            }
+
+            if (!accepted)
             {
                 uBit.serial.send(
                     ManagedString("ERROR INCIDENT_NOT_ACTIVE\n"),
@@ -159,7 +229,14 @@ void receiveCommands()
             }
             else
             {
-                reportDoorIncident("Active");
+                selectedScenario = incidentScenario;
+                reportSelectedScenario();
+
+                uBit.display.printChar(
+                    incidentScenario == DemoScenario::Smoke ? 'C' : 'W'
+                );
+
+                reportIncident(incidentScenario, "Active");
 
                 char response[60];
 
@@ -202,6 +279,7 @@ int main()
     );
 
     reportMode();
+    reportSelectedScenario();
 
     create_fiber(receiveCommands);
 

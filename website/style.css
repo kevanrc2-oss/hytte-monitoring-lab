@@ -414,7 +414,7 @@ footer {
 
 .incident-details {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 24px;
     margin: 24px 0 0;
 }
@@ -434,4 +434,10 @@ footer {
     .incident-details {
         grid-template-columns: 1fr;
     }
+}
+
+.dashboard-buttons button[aria-pressed="true"] {
+    background: #315b40;
+    border-color: #315b40;
+    color: #fff;
 }

@@ -153,5 +153,116 @@ int main()
         "Disabling monitoring preserves an existing active Incident"
     );
 
+        MonitoringSystem smokeHome;
+
+    check(
+        smokeHome.detectSmokeActivity() == SmokeResult::ModeNotSelected,
+        "Smoke simulation waits for startup mode selection"
+    );
+
+    smokeHome.setMode(MonitoringMode::Home);
+    smokeHome.setDoorMonitoringEnabled(false);
+
+    check(
+        smokeHome.detectSmokeActivity() == SmokeResult::CriticalCreated,
+        "Smoke creates a Critical Incident in HOME with Door monitoring off"
+    );
+
+    const unsigned int smokeHomeId = smokeHome.getSmokeIncidentId();
+
+    check(
+        smokeHome.detectSmokeActivity() ==
+            SmokeResult::CriticalAlreadyActive,
+        "Repeated smoke activity retains the active Critical Incident"
+    );
+
+    check(
+        smokeHome.getSmokeIncidentId() == smokeHomeId,
+        "Repeated smoke activity preserves the Incident ID"
+    );
+
+        check(
+        !smokeHome.markSmokeNotResolved(smokeHomeId + 1),
+        "Smoke Not Resolved rejects an incorrect Incident ID"
+    );
+
+    check(
+        smokeHome.markSmokeNotResolved(smokeHomeId),
+        "Smoke Not Resolved accepts the active Incident"
+    );
+
+    check(
+        smokeHome.detectSmokeActivity() ==
+            SmokeResult::CriticalAlreadyActive,
+        "Smoke Incident remains Active after Not Resolved"
+    );
+
+    check(
+        smokeHome.getSmokeIncidentId() == smokeHomeId,
+        "Smoke Not Resolved preserves the Incident ID"
+    );
+
+    check(
+        smokeHome.resolveSmokeIncident(),
+        "An active Smoke Incident can be resolved"
+    );
+
+        check(
+        !smokeHome.markSmokeNotResolved(smokeHomeId),
+        "Closed Smoke Incident rejects Not Resolved"
+    );
+
+    check(
+        smokeHome.getSmokeIncidentId() == smokeHomeId,
+        "Closing a Smoke Incident preserves its ID"
+    );
+
+    check(
+        !smokeHome.resolveSmokeIncident(),
+        "A Smoke Incident cannot be closed twice"
+    );
+
+    check(
+        smokeHome.detectSmokeActivity() == SmokeResult::CriticalCreated,
+        "Smoke activity after closure creates a new Critical Incident"
+    );
+
+    check(
+        smokeHome.getSmokeIncidentId() > smokeHomeId,
+        "A new Smoke Incident receives a new ID"
+    );
+
+    MonitoringSystem smokeAway;
+    smokeAway.setMode(MonitoringMode::Away);
+    smokeAway.setDoorMonitoringEnabled(false);
+
+    check(
+        smokeAway.detectSmokeActivity() == SmokeResult::CriticalCreated,
+        "Smoke creates a Critical Incident in AWAY with Door monitoring off"
+    );
+
+    smokeAway.setDoorMonitoringEnabled(true);
+
+    check(
+        smokeAway.detectDoorActivity() == DoorResult::WarningCreated,
+        "Door and Smoke Incidents can be active simultaneously"
+    );
+
+    check(
+        smokeAway.getDoorIncidentId() != smokeAway.getSmokeIncidentId(),
+        "Door and Smoke Incidents have different IDs"
+    );
+
+    check(
+        smokeAway.resolveDoorIncident(),
+        "The simultaneous Door Incident can be closed"
+    );
+
+    check(
+        smokeAway.detectSmokeActivity() ==
+            SmokeResult::CriticalAlreadyActive,
+        "Closing the Door Incident leaves the Smoke Incident active"
+    );
+
     std::cout << "All monitoring tests passed.\n";
 }
