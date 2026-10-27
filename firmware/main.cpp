@@ -110,9 +110,45 @@ void receiveCommands()
             monitoring.setMode(MonitoringMode::Away);
             reportMode();
         }
-        else if (command == "GET_MODE")
+                else if (command == "GET_MODE")
         {
             reportMode();
+        }
+        else if (command.compare(0, 13, "NOT_RESOLVED ") == 0)
+        {
+            unsigned int incidentId = 0;
+            char extra;
+
+            const int fields = std::sscanf(
+                command.c_str(),
+                "NOT_RESOLVED %u %c",
+                &incidentId,
+                &extra
+            );
+
+            if (fields != 1 ||
+                !monitoring.markDoorNotResolved(incidentId))
+            {
+                uBit.serial.send(
+                    ManagedString("ERROR INCIDENT_NOT_ACTIVE\n"),
+                    SYNC_SLEEP
+                );
+            }
+            else
+            {
+                reportDoorIncident("Active");
+
+                char response[60];
+
+                std::snprintf(
+                    response,
+                    sizeof(response),
+                    "NOT_RESOLVED %u\n",
+                    incidentId
+                );
+
+                uBit.serial.send(ManagedString(response), SYNC_SLEEP);
+            }
         }
         else
         {

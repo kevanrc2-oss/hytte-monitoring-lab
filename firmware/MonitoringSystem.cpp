@@ -29,6 +29,7 @@ DoorResult MonitoringSystem::detectDoorActivity()
 
     doorIncidentId_ = nextIncidentId_++;
     doorIncidentActive_ = true;
+    doorNotResolved_ = false;
 
     return DoorResult::WarningCreated;
 }
@@ -46,6 +47,19 @@ bool MonitoringSystem::resolveDoorIncident()
     }
 
     doorIncidentActive_ = false;
+    doorNotResolved_ = false;
+
+    return true;
+}
+
+bool MonitoringSystem::markDoorNotResolved(unsigned int incidentId)
+{
+    if (!doorIncidentActive_ || incidentId != doorIncidentId_)
+    {
+        return false;
+    }
+
+    doorNotResolved_ = true;
 
     return true;
 }

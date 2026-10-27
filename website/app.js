@@ -6,6 +6,8 @@ const awayButton = document.getElementById("mode-away");
 const incidentId = document.getElementById("incident-id");
 const incidentSeverity = document.getElementById("incident-severity");
 const incidentStatus = document.getElementById("incident-status");
+const notResolvedButton = document.getElementById("incident-not-resolved");
+const incidentResponse = document.getElementById("incident-response");
 
 let port = null;
 let reader = null;
@@ -13,6 +15,22 @@ let readTask = null;
 let writeTask = Promise.resolve();
 
 function updateIncident(message) {
+    const unresolved = message.match(
+        /^NOT_RESOLVED ([1-9]\d*)$/
+    );
+
+    if (unresolved !== null) {
+        if (
+            unresolved[1] === incidentId.textContent &&
+            incidentStatus.textContent === "Active"
+        ) {
+            incidentResponse.textContent =
+                `Not Resolved confirmed. Incident ${unresolved[1]} remains Active.`;
+        }
+
+        return;
+    }
+
     const match = message.match(
         /^INCIDENT ([1-9]\d*) DOOR (Warning|Critical) (Active|Closed)$/
     );
@@ -21,9 +39,21 @@ function updateIncident(message) {
         return;
     }
 
+    if (
+        match[1] !== incidentId.textContent ||
+        match[3] === "Closed"
+    ) {
+        incidentResponse.textContent = "";
+    }
+
     incidentId.textContent = match[1];
     incidentSeverity.textContent = match[2];
     incidentStatus.textContent = match[3];
+
+    notResolvedButton.disabled =
+        port === null ||
+        reader === null ||
+        match[3] !== "Active";
 }
 
 async function readMessages(openPort) {
@@ -67,6 +97,7 @@ async function readMessages(openPort) {
     } finally {
         activeReader.releaseLock();
         reader = null;
+        notResolvedButton.disabled = true;
     }
 }
 
@@ -121,7 +152,11 @@ async function selectPort() {
             connectionStatus.textContent = "Serial port open";
             connectButton.textContent = "Disconnect";
             serialMessage.textContent = "Waiting for a message…";
-
+            incidentId.textContent = "—";
+            incidentSeverity.textContent = "—";
+            incidentStatus.textContent = "—";
+            incidentResponse.textContent = "";
+            notResolvedButton.disabled = true;
             readTask = readMessages(port);
             homeButton.disabled = false;
             awayButton.disabled = false;
@@ -157,4 +192,24 @@ awayButton.addEventListener("click", () => {
         serialMessage.textContent = "Could not send AWAY command";
         console.error(error);
     });
+});
+
+notResolvedButton.addEventListener("click", () => {
+    const id = incidentId.textContent;
+
+    notResolvedButton.disabled = true;
+
+    sendCommand(`NOT_RESOLVED ${id}`)
+        .catch(error => {
+            incidentResponse.textContent =
+                "Could not send Not Resolved response.";
+
+            console.error(error);
+        })
+        .finally(() => {
+            notResolvedButton.disabled =
+                port === null ||
+                reader === null ||
+                incidentStatus.textContent !== "Active";
+        });
 });
