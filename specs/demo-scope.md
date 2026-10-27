@@ -57,3 +57,23 @@ FoM: 37.5%.
 
 R04–R08 have not yet been verified.
 Automated acceptance tests have not yet been added.
+
+## Measurement 3 – incident closure
+
+Commit: e1f1f83
+Verification method: manual test on micro:bit and dashboard.
+
+Previously verified: R01, R02 and R03.
+
+R06 verified:
+- Button B closes the active door Incident.
+- Closing preserves the Incident ID.
+
+Additional check:
+A new door Incident after closure receives the next ID.
+
+Verified requirements: 4/8.
+FoM: 50%.
+
+R04, R05, R07 and R08 have not yet been verified.
+Automated acceptance tests have not yet been added.
