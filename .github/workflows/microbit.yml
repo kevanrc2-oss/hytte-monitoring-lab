@@ -7,13 +7,35 @@ on:
       - main
     paths:
       - "firmware/**"
+      - "tests/**"
       - ".github/workflows/microbit.yml"
 
 permissions:
   contents: read
 
 jobs:
+  test-monitoring:
+    name: Test monitoring logic
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Download our repository
+        uses: actions/checkout@v7
+
+      - name: Compile monitoring tests
+        run: |
+          g++ -std=c++11 -Wall -Wextra -Werror -pedantic \
+            -I firmware \
+            firmware/MonitoringSystem.cpp \
+            tests/monitoring_tests.cpp \
+            -o "$RUNNER_TEMP/monitoring-tests"
+
+      - name: Run monitoring tests
+        run: |
+          "$RUNNER_TEMP/monitoring-tests"
+
   build:
+    needs: test-monitoring
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
