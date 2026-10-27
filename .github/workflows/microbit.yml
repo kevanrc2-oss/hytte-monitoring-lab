@@ -60,7 +60,8 @@ jobs:
       - name: Copy our program into the build project
         run: |
           cp firmware/codal.json "$RUNNER_TEMP/microbit-build/codal.json"
-          cp firmware/main.cpp "$RUNNER_TEMP/microbit-build/source/main.cpp"
+          cp firmware/*.cpp "$RUNNER_TEMP/microbit-build/source/"
+          cp firmware/*.h "$RUNNER_TEMP/microbit-build/source/"
 
       - name: Compile firmware
         run: |

@@ -1,20 +1,15 @@
 #include "MicroBit.h"
 #include <string>
+#include "MonitoringSystem.h"
+#include <cstdio>
 
 MicroBit uBit;
 
-enum class MonitoringMode
-{
-    Unselected,
-    Home,
-    Away
-};
-
-MonitoringMode currentMode = MonitoringMode::Unselected;
+MonitoringSystem monitoring;
 
 void reportMode()
 {
-    switch (currentMode)
+    switch (monitoring.getMode())
     {
         case MonitoringMode::Home:
             uBit.display.printChar('H');
@@ -35,7 +30,38 @@ void reportMode()
 
 void onButtonA(MicroBitEvent)
 {
-    uBit.serial.send(ManagedString("BUTTON_A\n"), SYNC_SLEEP);
+    const DoorResult result = monitoring.detectDoorActivity();
+
+    if (result == DoorResult::ModeNotSelected)
+    {
+        uBit.serial.send(
+            ManagedString("ERROR MODE_NOT_SELECTED\n"),
+            SYNC_SLEEP
+        );
+        return;
+    }
+
+    if (result == DoorResult::Ignored)
+    {
+        uBit.serial.send(
+            ManagedString("DOOR IGNORED\n"),
+            SYNC_SLEEP
+        );
+        return;
+    }
+
+    uBit.display.printChar('W');
+
+    char message[100];
+
+    std::snprintf(
+        message,
+        sizeof(message),
+        "INCIDENT %u DOOR Warning Active\n",
+        monitoring.getDoorIncidentId()
+    );
+
+    uBit.serial.send(ManagedString(message), SYNC_SLEEP);
 }
 
 void receiveCommands()
@@ -56,12 +82,12 @@ void receiveCommands()
 
         if (command == "MODE HOME")
         {
-            currentMode = MonitoringMode::Home;
+            monitoring.setMode(MonitoringMode::Home);
             reportMode();
         }
         else if (command == "MODE AWAY")
         {
-            currentMode = MonitoringMode::Away;
+            monitoring.setMode(MonitoringMode::Away);
             reportMode();
         }
         else if (command == "GET_MODE")
