@@ -39,3 +39,21 @@ has not been implemented.
 
 This baseline is based on code inspection.
 Automated acceptance tests have not yet been added.
+
+## Measurement 2 – door monitoring
+
+Commit: 731c0fb
+Verification method: manual test on micro:bit and dashboard.
+
+- R01 verified: A before mode selection returns ERROR MODE_NOT_SELECTED.
+- R02 verified: Door activity in HOME returns DOOR IGNORED.
+- R03 verified: Door activity in AWAY creates an Active Warning.
+
+Additional check:
+Repeated A presses retain the same active Incident ID.
+
+Verified requirements: 3/8.
+FoM: 37.5%.
+
+R04–R08 have not yet been verified.
+Automated acceptance tests have not yet been added.
