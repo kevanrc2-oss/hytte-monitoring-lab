@@ -84,6 +84,15 @@ void onButtonB(MicroBitEvent)
     reportDoorIncident("Closed");
 }
 
+void reportDoorMonitoring()
+{
+    const char* message = monitoring.isDoorMonitoringEnabled()
+        ? "DOOR_MONITORING ON\n"
+        : "DOOR_MONITORING OFF\n";
+
+    uBit.serial.send(ManagedString(message), SYNC_SLEEP);
+}
+
 void receiveCommands()
 {
     while (true)
@@ -113,6 +122,20 @@ void receiveCommands()
                 else if (command == "GET_MODE")
         {
             reportMode();
+        }
+                else if (command == "DOOR ON")
+        {
+            monitoring.setDoorMonitoringEnabled(true);
+            reportDoorMonitoring();
+        }
+        else if (command == "DOOR OFF")
+        {
+            monitoring.setDoorMonitoringEnabled(false);
+            reportDoorMonitoring();
+        }
+        else if (command == "GET_DOOR_MONITORING")
+        {
+            reportDoorMonitoring();
         }
         else if (command.compare(0, 13, "NOT_RESOLVED ") == 0)
         {

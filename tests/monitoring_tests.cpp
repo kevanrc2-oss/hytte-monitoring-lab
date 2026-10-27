@@ -114,5 +114,44 @@ int main()
         "New Incident receives a new ID"
     );
 
+        MonitoringSystem configured;
+    configured.setMode(MonitoringMode::Away);
+
+    check(
+        configured.isDoorMonitoringEnabled(),
+        "Door monitoring is enabled by default"
+    );
+
+    configured.setDoorMonitoringEnabled(false);
+
+    check(
+        !configured.isDoorMonitoringEnabled(),
+        "Door monitoring can be disabled"
+    );
+
+    check(
+        configured.detectDoorActivity() == DoorResult::Ignored,
+        "Disabled Door monitoring ignores activity in AWAY"
+    );
+
+    check(
+        configured.getDoorIncidentId() == 0,
+        "Disabled monitoring does not allocate an Incident ID"
+    );
+
+    configured.setDoorMonitoringEnabled(true);
+
+    check(
+        configured.detectDoorActivity() == DoorResult::WarningCreated,
+        "Re-enabled Door monitoring creates a Warning in AWAY"
+    );
+
+    configured.setDoorMonitoringEnabled(false);
+
+    check(
+        configured.resolveDoorIncident(),
+        "Disabling monitoring preserves an existing active Incident"
+    );
+
     std::cout << "All monitoring tests passed.\n";
 }

@@ -17,7 +17,7 @@ DoorResult MonitoringSystem::detectDoorActivity()
         return DoorResult::ModeNotSelected;
     }
 
-    if (mode_ == MonitoringMode::Home)
+    if (mode_ == MonitoringMode::Home || !doorMonitoringEnabled_)
     {
         return DoorResult::Ignored;
     }
@@ -62,4 +62,14 @@ bool MonitoringSystem::markDoorNotResolved(unsigned int incidentId)
     doorNotResolved_ = true;
 
     return true;
+}
+
+void MonitoringSystem::setDoorMonitoringEnabled(bool enabled)
+{
+    doorMonitoringEnabled_ = enabled;
+}
+
+bool MonitoringSystem::isDoorMonitoringEnabled() const
+{
+    return doorMonitoringEnabled_;
 }
