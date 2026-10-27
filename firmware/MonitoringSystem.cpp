@@ -37,3 +37,15 @@ unsigned int MonitoringSystem::getDoorIncidentId() const
 {
     return doorIncidentId_;
 }
+
+bool MonitoringSystem::resolveDoorIncident()
+{
+    if (!doorIncidentActive_)
+    {
+        return false;
+    }
+
+    doorIncidentActive_ = false;
+
+    return true;
+}

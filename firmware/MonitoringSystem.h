@@ -22,6 +22,8 @@ public:
     MonitoringMode getMode() const;
 
     DoorResult detectDoorActivity();
+    bool resolveDoorIncident();
+
     unsigned int getDoorIncidentId() const;
 
 private:

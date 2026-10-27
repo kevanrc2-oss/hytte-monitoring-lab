@@ -28,6 +28,21 @@ void reportMode()
     }
 }
 
+void reportDoorIncident(const char* status)
+{
+    char message[100];
+
+    std::snprintf(
+        message,
+        sizeof(message),
+        "INCIDENT %u DOOR Warning %s\n",
+        monitoring.getDoorIncidentId(),
+        status
+    );
+
+    uBit.serial.send(ManagedString(message), SYNC_SLEEP);
+}
+
 void onButtonA(MicroBitEvent)
 {
     const DoorResult result = monitoring.detectDoorActivity();
@@ -50,18 +65,23 @@ void onButtonA(MicroBitEvent)
         return;
     }
 
-    uBit.display.printChar('W');
+        uBit.display.printChar('W');
+        reportDoorIncident("Active");
+}
 
-    char message[100];
+void onButtonB(MicroBitEvent)
+{
+    if (!monitoring.resolveDoorIncident())
+    {
+        uBit.serial.send(
+            ManagedString("ERROR NO_ACTIVE_DOOR_INCIDENT\n"),
+            SYNC_SLEEP
+        );
+        return;
+    }
 
-    std::snprintf(
-        message,
-        sizeof(message),
-        "INCIDENT %u DOOR Warning Active\n",
-        monitoring.getDoorIncidentId()
-    );
-
-    uBit.serial.send(ManagedString(message), SYNC_SLEEP);
+    reportMode();
+    reportDoorIncident("Closed");
 }
 
 void receiveCommands()
@@ -114,6 +134,12 @@ int main()
         MICROBIT_ID_BUTTON_A,
         MICROBIT_BUTTON_EVT_CLICK,
         onButtonA
+    );
+
+        uBit.messageBus.listen(
+        MICROBIT_ID_BUTTON_B,
+        MICROBIT_BUTTON_EVT_CLICK,
+        onButtonB
     );
 
     reportMode();
