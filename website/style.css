@@ -400,3 +400,9 @@ footer {
     outline: 3px solid #8ba78e;
     outline-offset: 3px;
 }
+.serial-message {
+    margin: 16px 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
