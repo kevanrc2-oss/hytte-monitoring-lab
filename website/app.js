@@ -3,11 +3,28 @@ const connectionStatus = document.getElementById("connection-status");
 const serialMessage = document.getElementById("serial-message");
 const homeButton = document.getElementById("mode-home");
 const awayButton = document.getElementById("mode-away");
+const incidentId = document.getElementById("incident-id");
+const incidentSeverity = document.getElementById("incident-severity");
+const incidentStatus = document.getElementById("incident-status");
 
 let port = null;
 let reader = null;
 let readTask = null;
 let writeTask = Promise.resolve();
+
+function updateIncident(message) {
+    const match = message.match(
+        /^INCIDENT ([1-9]\d*) DOOR (Warning|Critical) (Active|Closed)$/
+    );
+
+    if (match === null) {
+        return;
+    }
+
+    incidentId.textContent = match[1];
+    incidentSeverity.textContent = match[2];
+    incidentStatus.textContent = match[3];
+}
 
 async function readMessages(openPort) {
     const decoder = new TextDecoder();
@@ -34,6 +51,7 @@ async function readMessages(openPort) {
 
                 if (message !== "") {
                     serialMessage.textContent = `Received: ${message}`;
+                    updateIncident(message);
                 }
 
                 newlineIndex = buffer.indexOf("\n");
