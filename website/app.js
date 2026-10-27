@@ -1,10 +1,13 @@
 const connectButton = document.getElementById("connect-button");
 const connectionStatus = document.getElementById("connection-status");
 const serialMessage = document.getElementById("serial-message");
+const homeButton = document.getElementById("mode-home");
+const awayButton = document.getElementById("mode-away");
 
 let port = null;
 let reader = null;
 let readTask = null;
+let writeTask = Promise.resolve();
 
 async function readMessages(openPort) {
     const decoder = new TextDecoder();
@@ -49,16 +52,41 @@ async function readMessages(openPort) {
     }
 }
 
+function sendCommand(command) {
+    const selectedPort = port;
+
+    writeTask = writeTask.catch(() => {}).then(async () => {
+        if (selectedPort === null || selectedPort !== port) {
+            throw new Error("No active serial connection.");
+        }
+
+        const writer = selectedPort.writable.getWriter();
+
+        try {
+            const data = new TextEncoder().encode(command + "\n");
+
+            await writer.write(data);
+        } finally {
+            writer.releaseLock();
+        }
+    });
+
+    return writeTask;
+}
+
 async function selectPort() {
     connectButton.disabled = true;
 
     try {
         if (port !== null) {
             if (reader !== null) {
+                homeButton.disabled = true;
+                awayButton.disabled = true;
                 await reader.cancel();
             }
 
             await readTask;
+            await writeTask.catch(() => {});
             await port.close();
 
             port = null;
@@ -77,6 +105,8 @@ async function selectPort() {
             serialMessage.textContent = "Waiting for a message…";
 
             readTask = readMessages(port);
+            homeButton.disabled = false;
+            awayButton.disabled = false;
         }
     } catch (error) {
         if (error.name === "NotFoundError") {
@@ -96,3 +126,17 @@ if (window.isSecureContext && "serial" in navigator) {
 } else {
     connectionStatus.textContent = "Web Serial unavailable";
 }
+
+homeButton.addEventListener("click", () => {
+    sendCommand("MODE HOME").catch(error => {
+        serialMessage.textContent = "Could not send HOME command";
+        console.error(error);
+    });
+});
+
+awayButton.addEventListener("click", () => {
+    sendCommand("MODE AWAY").catch(error => {
+        serialMessage.textContent = "Could not send AWAY command";
+        console.error(error);
+    });
+});
