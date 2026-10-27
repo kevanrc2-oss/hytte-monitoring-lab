@@ -8,6 +8,10 @@ const incidentSeverity = document.getElementById("incident-severity");
 const incidentStatus = document.getElementById("incident-status");
 const notResolvedButton = document.getElementById("incident-not-resolved");
 const incidentResponse = document.getElementById("incident-response");
+const guidanceChoice = document.getElementById("guidance-choice");
+const incidentGuidance = document.getElementById("incident-guidance");
+const guidanceYes = document.getElementById("guidance-yes");
+const guidanceNo = document.getElementById("guidance-no");
 
 let port = null;
 let reader = null;
@@ -26,6 +30,8 @@ function updateIncident(message) {
         ) {
             incidentResponse.textContent =
                 `Not Resolved confirmed. Incident ${unresolved[1]} remains Active.`;
+            guidanceChoice.hidden = false;
+            incidentGuidance.hidden = true;
         }
 
         return;
@@ -43,7 +49,9 @@ function updateIncident(message) {
         match[1] !== incidentId.textContent ||
         match[3] === "Closed"
     ) {
-        incidentResponse.textContent = "";
+       incidentResponse.textContent = "";
+       guidanceChoice.hidden = true;
+       incidentGuidance.hidden = true;
     }
 
     incidentId.textContent = match[1];
@@ -98,6 +106,8 @@ async function readMessages(openPort) {
         activeReader.releaseLock();
         reader = null;
         notResolvedButton.disabled = true;
+        guidanceChoice.hidden = true;
+        incidentGuidance.hidden = true;
     }
 }
 
@@ -212,4 +222,17 @@ notResolvedButton.addEventListener("click", () => {
                 reader === null ||
                 incidentStatus.textContent !== "Active";
         });
+});
+
+guidanceYes.addEventListener("click", () => {
+    guidanceChoice.hidden = true;
+    incidentGuidance.hidden = false;
+});
+
+guidanceNo.addEventListener("click", () => {
+    guidanceChoice.hidden = true;
+    incidentGuidance.hidden = true;
+
+    incidentResponse.textContent =
+        "Guidance declined. The incident remains Active.";
 });
